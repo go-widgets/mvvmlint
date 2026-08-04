@@ -94,6 +94,7 @@ var DefaultStateFields = []string{
 type config struct {
 	stateFieldsFlag string // raw -statefields flag value ("" => defaults)
 	requireVM       bool   // emit the missing-view-model rule
+	includeTests    bool   // also analyze *_test.go files (default: skip them)
 	toolkitPath     string // toolkit import path (overridable for testing)
 	mvvmPath        string // mvvm import path (overridable for testing)
 }
@@ -115,6 +116,8 @@ func newAnalyzer() *analysis.Analyzer {
 		"comma-separated allowlist of widget state fields to guard (empty uses the built-in default)")
 	a.Flags.BoolVar(&cfg.requireVM, "requirevm", true,
 		"report packages that import the toolkit but no MVVM view-model (set false for pure widget libraries)")
+	a.Flags.BoolVar(&cfg.includeTests, "includetests", false,
+		"also analyze *_test.go files (default: skip them — tests legitimately construct widget fixtures)")
 	a.Flags.StringVar(&cfg.toolkitPath, "toolkitpath", ToolkitPath,
 		"import path treated as the widget toolkit")
 	a.Flags.StringVar(&cfg.mvvmPath, "mvvmpath", MVVMPath,
@@ -152,7 +155,7 @@ func run(pass *analysis.Pass, cfg *config) (any, error) {
 	// toolkit import spec's position doubles as the "is it imported?" signal and
 	// as the anchor for the missing-view-model diagnostic (a single, stable
 	// source location).
-	tkPos := toolkitImportPos(pass, cfg.toolkitPath)
+	tkPos := toolkitImportPos(pass, cfg.toolkitPath, cfg.includeTests)
 	if tkPos == token.NoPos {
 		return nil, nil
 	}
@@ -165,7 +168,7 @@ func run(pass *analysis.Pass, cfg *config) (any, error) {
 
 	// Rule 1: direct widget-state mutation.
 	fields := cfg.stateFieldSet()
-	exempt := exemptFiles(pass)
+	exempt := exemptFiles(pass, cfg.includeTests)
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	insp.Preorder([]ast.Node{(*ast.AssignStmt)(nil)}, func(n ast.Node) {
 		assign := n.(*ast.AssignStmt)
@@ -206,8 +209,11 @@ func importsPath(pkg *types.Package, path string) bool {
 // pass.Files is ordered by position, so the first match is also the earliest,
 // giving the missing-view-model diagnostic a single, stable, source-anchored
 // location.
-func toolkitImportPos(pass *analysis.Pass, toolkitPath string) token.Pos {
+func toolkitImportPos(pass *analysis.Pass, toolkitPath string, includeTests bool) token.Pos {
 	for _, f := range pass.Files {
+		if !includeTests && strings.HasSuffix(pass.Fset.File(f.Pos()).Name(), "_test.go") {
+			continue
+		}
 		for _, imp := range f.Imports {
 			if strings.Trim(imp.Path.Value, `"`) == toolkitPath {
 				return imp.Pos()
@@ -220,10 +226,16 @@ func toolkitImportPos(pass *analysis.Pass, toolkitPath string) token.Pos {
 // exemptFiles returns the set of file names (as reported by token.File.Name)
 // that are exempt from the direct-mutation rule: files named *_binding.go, and
 // files carrying a //mvvmlint:allow directive.
-func exemptFiles(pass *analysis.Pass) map[string]bool {
+func exemptFiles(pass *analysis.Pass, includeTests bool) map[string]bool {
 	exempt := make(map[string]bool)
 	for _, f := range pass.Files {
 		name := pass.Fset.File(f.Pos()).Name()
+		// Tests legitimately construct widget fixtures; skip *_test.go unless the
+		// operator opts in with -includetests.
+		if !includeTests && strings.HasSuffix(name, "_test.go") {
+			exempt[name] = true
+			continue
+		}
 		if strings.HasSuffix(name, "_binding.go") {
 			exempt[name] = true
 			continue

@@ -33,7 +33,18 @@ func setFlag(t *testing.T, name, value string) {
 func TestDefaults(t *testing.T) {
 	dir := analysistest.TestData()
 	analysistest.Run(t, dir, Analyzer,
-		"direct", "bound", "nomvvm", "allowdir", "bindingfile", "notoolkit")
+		"direct", "bound", "nomvvm", "allowdir", "bindingfile", "notoolkit",
+		// *_test.go is skipped by default: skipctx (toolkit in prod, a mutation in
+		// a test file) and tkonlytest (toolkit imported only from a test file) must
+		// both emit nothing.
+		"skipctx", "tkonlytest")
+}
+
+// TestIncludeTests opts into analyzing *_test.go files, so a direct mutation in a
+// test fixture is flagged.
+func TestIncludeTests(t *testing.T) {
+	setFlag(t, "includetests", "true")
+	analysistest.Run(t, analysistest.TestData(), Analyzer, "incltests")
 }
 
 // TestStateFieldsFlag overrides the allowlist so only Items/Selected are guarded
