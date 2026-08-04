@@ -1,0 +1,53 @@
+# Copyright (c) 2026 the go-widgets/mvvmlint authors. All rights reserved.
+# Use of this source code is governed by a BSD-3-Clause license.
+#
+# Reusable workflow that enforces MVVM usage in a go-widgets application.
+# Call it from an app repository as a required status check:
+#
+#   jobs:
+#     mvvm:
+#       uses: go-widgets/mvvmlint/.github/workflows/mvvmlint.yml@main
+#
+# It installs the mvvmlint analyzer and runs it as a `go vet` tool over the
+# caller's packages, failing the job on any diagnostic.
+name: mvvmlint
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: "Go toolchain version to set up."
+        type: string
+        required: false
+        default: "1.26.4"
+      packages:
+        description: "Package pattern to check."
+        type: string
+        required: false
+        default: "./..."
+      version:
+        description: "mvvmlint version to install (module query)."
+        type: string
+        required: false
+        default: "latest"
+
+permissions:
+  contents: read
+
+jobs:
+  mvvmlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the calling repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Install mvvmlint
+        run: go install github.com/go-widgets/mvvmlint/cmd/mvvmlint@${{ inputs.version }}
+
+      - name: Enforce MVVM (go vet -vettool)
+        run: go vet -vettool="$(go env GOPATH)/bin/mvvmlint" ${{ inputs.packages }}
