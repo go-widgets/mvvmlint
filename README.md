@@ -2,7 +2,6 @@
 
 [![ci](https://github.com/go-widgets/mvvmlint/actions/workflows/ci.yml/badge.svg)](https://github.com/go-widgets/mvvmlint/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/go-widgets/mvvmlint.svg)](https://pkg.go.dev/github.com/go-widgets/mvvmlint)
-[![Go Report Card](https://goreportcard.com/badge/github.com/go-widgets/mvvmlint)](https://goreportcard.com/report/github.com/go-widgets/mvvmlint)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 
 A [`go/analysis`](https://pkg.go.dev/golang.org/x/tools/go/analysis) analyzer that
