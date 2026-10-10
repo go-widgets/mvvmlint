@@ -29,6 +29,19 @@ jobs:
       - name: Build
         run: go build ./...
 
+      # A vet tool is installed on whatever machine runs CI, so it is built
+      # for every architecture the fleet ships on, not only this runner's.
+      - name: Cross-compile (all 6 64-bit Linux arches + darwin + windows)
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          for arch in amd64 arm64 riscv64 loong64 ppc64le s390x; do
+            echo "== linux/$arch =="
+            GOOS=linux GOARCH=$arch go build ./...
+          done
+          GOOS=darwin  GOARCH=arm64 go build ./...
+          GOOS=windows GOARCH=amd64 go build ./...
+
       - name: Test with coverage
         run: |
           go test -covermode=set -coverprofile=cover.out ./...
