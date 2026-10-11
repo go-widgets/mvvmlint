@@ -95,7 +95,7 @@ jobs:
     uses: go-widgets/mvvmlint/.github/workflows/mvvmlint.yml@main
     # optional overrides:
     # with:
-    #   go-version: "1.26.4"
+    #   go-version: "1.27.2"   # default: the version your go.mod requires
     #   packages: "./..."
     #   version: "latest"
 ```
@@ -109,10 +109,10 @@ jobs:
   mvvm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version: "1.26.4"
+          go-version-file: go.mod
       - run: go install github.com/go-widgets/mvvmlint/cmd/mvvmlint@latest
       - run: go vet -vettool="$(go env GOPATH)/bin/mvvmlint" ./...
 ```
