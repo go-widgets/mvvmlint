@@ -16,10 +16,15 @@ on:
   workflow_call:
     inputs:
       go-version:
-        description: "Go toolchain version to set up."
+        description: >-
+          Go toolchain version to set up. Empty, the default, takes the one the
+          caller's go.mod requires. A pinned default goes stale: with
+          GOTOOLCHAIN=local, a module that requires a newer patch release (a
+          security fix, say) cannot even be built, and the gate fails before it
+          lints anything.
         type: string
         required: false
-        default: "1.27.1"
+        default: ""
       packages:
         description: "Package pattern to check."
         type: string
@@ -45,6 +50,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.go-version == '' && 'go.mod' || '' }}
 
       - name: Install mvvmlint
         run: go install github.com/go-widgets/mvvmlint/cmd/mvvmlint@${{ inputs.version }}
